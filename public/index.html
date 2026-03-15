@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MailHarvest — Bulk Email Extractor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0b;
+      --surface: #111114;
+      --card: #16161a;
+      --border: #2a2a32;
+      --accent: #e8ff47;
+      --accent2: #47ffe8;
+      --text: #f0f0f2;
+      --muted: #6b6b7a;
+      --success: #47ff8a;
+      --error: #ff4747;
+      --warning: #ffaa47;
+      --font: 'Syne', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* HEADER */
+    header {
+      padding: 40px 0 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+
+    .logo h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    .tagline {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 2px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* TABS */
+    .input-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 16px 20px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab:hover { color: var(--text); }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      background: rgba(232,255,71,0.04);
+    }
+
+    .tab-panel { display: none; padding: 28px; }
+    .tab-panel.active { display: block; }
+
+    /* INPUTS */
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    textarea, input[type="text"], input[type="url"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      padding: 14px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: vertical;
+    }
+
+    textarea:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(232,255,71,0.08);
+    }
+
+    textarea { min-height: 140px; }
+
+    .help-text {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+      font-family: var(--mono);
+    }
+
+    /* FILE DROP */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface);
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(232,255,71,0.04);
+    }
+
+    .drop-zone .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    .drop-zone h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .drop-zone p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    #csv-input { display: none; }
+
+    .file-loaded {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(71,255,138,0.08);
+      border: 1px solid rgba(71,255,138,0.25);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 14px;
+    }
+
+    .file-loaded span { color: var(--success); font-size: 0.88rem; font-weight: 600; }
+    .file-loaded .clear { margin-left: auto; cursor: pointer; color: var(--muted); font-size: 1.1rem; }
+
+    /* BUTTONS */
+    .btn-primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 24px;
+      background: var(--accent);
+      color: #0a0a0b;
+      border: none;
+      border-radius: 12px;
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 20px;
+    }
+
+    .btn-primary:hover {
+      background: #d4eb2e;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(232,255,71,0.25);
+    }
+
+    .btn-primary:active { transform: none; }
+
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* PROGRESS */
+    #progress-section { display: none; margin-bottom: 32px; }
+
+    .progress-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 28px;
+    }
+
+    .progress-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .progress-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .progress-stats {
+      display: flex;
+      gap: 24px;
+    }
+
+    .stat {
+      text-align: right;
+    }
+
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+    }
+
+    .progress-bar-wrap {
+      background: var(--surface);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 99px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    .current-url {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .current-url span { color: var(--accent2); }
+
+    /* LIVE LOG */
+    .log-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      height: 120px;
+      overflow-y: auto;
+      padding: 12px 14px;
+      margin-top: 14px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+    }
+
+    .log-entry { padding: 2px 0; color: var(--muted); }
+    .log-entry.ok { color: var(--success); }
+    .log-entry.err { color: var(--error); }
+    .log-entry.info { color: var(--accent2); }
+
+    /* RESULTS */
+    #results-section { display: none; }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .results-header h2 { font-size: 1.3rem; font-weight: 800; }
+
+    .results-actions { display: flex; gap: 10px; }
+
+    .btn-outline {
+      padding: 9px 18px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Results table */
+    .results-table-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .results-table th {
+      background: var(--surface);
+      padding: 12px 18px;
+      text-align: left;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .results-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: top;
+      font-size: 0.85rem;
+    }
+
+    .results-table tr:last-child td { border-bottom: none; }
+
+    .results-table tr:hover td {
+      background: rgba(255,255,255,0.02);
+    }
+
+    .site-url {
+      font-family: var(--mono);
+      color: var(--accent2);
+      font-size: 0.8rem;
+      word-break: break-all;
+    }
+
+    .email-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .email-chip {
+      background: rgba(232,255,71,0.08);
+      border: 1px solid rgba(232,255,71,0.2);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: all;
+    }
+
+    .email-chip:hover {
+      background: rgba(232,255,71,0.18);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-family: var(--mono);
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+
+    .status-badge.done { background: rgba(71,255,138,0.1); color: var(--success); }
+    .status-badge.error { background: rgba(255,71,71,0.1); color: var(--error); }
+    .status-badge.none { background: rgba(255,170,71,0.1); color: var(--warning); }
+
+    .empty-emails { color: var(--muted); font-size: 0.78rem; font-family: var(--mono); }
+
+    /* Summary bar */
+    .summary-bar {
+      display: flex;
+      gap: 20px;
+      padding: 16px 20px;
+      background: rgba(232,255,71,0.04);
+      border: 1px solid rgba(232,255,71,0.15);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .sum-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+    .sum-num { font-family: var(--mono); font-weight: 700; color: var(--accent); font-size: 1rem; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    footer {
+      text-align: center;
+      padding: 48px 0 32px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-family: var(--mono);
+      border-top: 1px solid var(--border);
+      margin-top: 64px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .pulsing { animation: pulse 1.5s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <h1>Mail<span>Harvest</span></h1>
+        <div class="tagline">Bulk Email Extractor · Full Site Crawl</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- INPUT SECTION -->
+  <div class="input-section">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('manual')">✏️ Manual Input</button>
+      <button class="tab" onclick="switchTab('csv')">📄 Upload CSV</button>
+      <button class="tab" onclick="switchTab('gdoc')">📋 Google Doc</button>
+    </div>
+
+    <!-- Manual -->
+    <div class="tab-panel active" id="tab-manual">
+      <label>Enter websites (one per line)</label>
+      <textarea id="manual-input" placeholder="https://example.com&#10;https://company.io&#10;domain.net"></textarea>
+      <div class="help-text">Paste domains or full URLs. HTTP/HTTPS auto-added if missing.</div>
+      <button class="btn-primary" onclick="startScrape('manual')">⚡ Start Scraping</button>
+    </div>
+
+    <!-- CSV -->
+    <div class="tab-panel" id="tab-csv">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()"
+           ondragover="handleDrag(event, true)" ondragleave="handleDrag(event, false)" ondrop="handleDrop(event)">
+        <div class="icon">📂</div>
+        <h3>Drop your CSV file here</h3>
+        <p>or click to browse · .csv, .txt supported</p>
+      </div>
+      <input type="file" id="csv-input" accept=".csv,.txt" onchange="handleFileSelect(event)" />
+      <div id="file-loaded" style="display:none" class="file-loaded">
+        <span id="file-name">file.csv</span>
+        <span id="file-count" style="color:var(--muted); font-size:0.8rem; font-family:var(--mono)"></span>
+        <span class="clear" onclick="clearFile()">✕</span>
+      </div>
+      <button class="btn-primary" onclick="startScrape('csv')">⚡ Start Scraping</button>
+    </div>
+
+    <!-- Google Doc -->
+    <div class="tab-panel" id="tab-gdoc">
+      <label>Google Doc / Sheet URL</label>
+      <input type="url" id="gdoc-url" placeholder="https://docs.google.com/document/d/..." />
+      <div class="help-text">⚠️ The document must be set to <strong style="color:var(--accent)">Anyone with the link can view</strong>. Supports Docs and Sheets.</div>
+      <button class="btn-primary" onclick="startScrape('gdoc')">⚡ Start Scraping</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-section">
+    <div class="progress-card">
+      <div class="progress-header">
+        <h3 class="pulsing">🔍 Crawling websites…</h3>
+        <div class="progress-stats">
+          <div class="stat">
+            <div class="stat-val" id="stat-emails">0</div>
+            <div class="stat-label">Emails Found</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" id="stat-done">0</div>
+            <div class="stat-label">Sites Done</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" id="stat-total">0</div>
+            <div class="stat-label">Total Sites</div>
+          </div>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="current-url">Currently scraping: <span id="current-url-text">—</span></div>
+      <div class="log-wrap" id="log-wrap"></div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results-section">
+    <div class="results-header">
+      <h2>📬 Results</h2>
+      <div class="results-actions">
+        <button class="btn-outline" onclick="exportCSV()">⬇️ Export CSV</button>
+        <button class="btn-outline" onclick="copyAll()">📋 Copy All Emails</button>
+        <button class="btn-outline" onclick="resetAll()">🔄 New Scrape</button>
+      </div>
+    </div>
+
+    <div class="summary-bar" id="summary-bar"></div>
+
+    <div class="results-table-wrap">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Website</th>
+            <th>Emails Found</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>MailHarvest · Full-site email extractor · Built for bulk prospecting</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let currentTab = 'manual';
+  let csvUrls = [];
+  let jobResults = [];
+  let totalEmails = 0;
+
+  function switchTab(name) {
+    currentTab = name;
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', ['manual','csv','gdoc'][i] === name);
+    });
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  // File handling
+  function handleDrag(e, over) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.toggle('dragover', over);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    handleDrag(e, false);
+    const file = e.dataTransfer.files[0];
+    if (file) processFile(file);
+  }
+
+  function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (file) processFile(file);
+  }
+
+  async function processFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/upload-csv', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      csvUrls = data.urls;
+      document.getElementById('file-loaded').style.display = 'flex';
+      document.getElementById('file-name').textContent = file.name;
+      document.getElementById('file-count').textContent = `${csvUrls.length} URLs loaded`;
+      document.getElementById('drop-zone').style.display = 'none';
+    } catch (err) {
+      showToast('❌ ' + err.message);
+    }
+  }
+
+  function clearFile() {
+    csvUrls = [];
+    document.getElementById('file-loaded').style.display = 'none';
+    document.getElementById('drop-zone').style.display = 'block';
+    document.getElementById('csv-input').value = '';
+  }
+
+  // MAIN SCRAPE
+  async function startScrape(source) {
+    let urls = [];
+
+    if (source === 'manual') {
+      const raw = document.getElementById('manual-input').value.trim();
+      if (!raw) return showToast('⚠️ Please enter at least one URL');
+      urls = raw.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
+    } else if (source === 'csv') {
+      if (!csvUrls.length) return showToast('⚠️ Please upload a CSV file first');
+      urls = csvUrls;
+    } else if (source === 'gdoc') {
+      const docUrl = document.getElementById('gdoc-url').value.trim();
+      if (!docUrl) return showToast('⚠️ Please enter a Google Doc URL');
+      showToast('⏳ Fetching Google Doc…');
+      try {
+        const res = await fetch('/api/google-doc', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ docUrl })
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        urls = data.urls;
+        showToast(`✅ ${urls.length} URLs loaded from Google Doc`);
+      } catch (err) {
+        return showToast('❌ ' + err.message);
+      }
+    }
+
+    if (!urls.length) return showToast('⚠️ No valid URLs found');
+
+    const jobId = 'job_' + Date.now();
+    jobResults = [];
+    totalEmails = 0;
+
+    // Show progress
+    document.getElementById('progress-section').style.display = 'block';
+    document.getElementById('results-section').style.display = 'none';
+    document.getElementById('stat-total').textContent = urls.length;
+    document.getElementById('stat-done').textContent = '0';
+    document.getElementById('stat-emails').textContent = '0';
+    document.getElementById('progress-bar').style.width = '0%';
+    document.getElementById('log-wrap').innerHTML = '';
+    document.getElementById('results-tbody').innerHTML = '';
+
+    // Start job
+    await fetch('/api/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls, jobId })
+    });
+
+    // Connect SSE
+    const evtSource = new EventSource(`/api/stream/${jobId}`);
+    let done = 0;
+    const total = urls.length;
+
+    evtSource.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === 'progress') {
+        document.getElementById('current-url-text').textContent = msg.url;
+        addLog(`info`, `[${msg.index+1}/${msg.total}] Crawling ${msg.url}`);
+      }
+
+      if (msg.type === 'page') {
+        addLog('', `  └─ page ${msg.page}: ${msg.url}`);
+      }
+
+      if (msg.type === 'result') {
+        done++;
+        totalEmails += msg.emails.length;
+        document.getElementById('stat-done').textContent = done;
+        document.getElementById('stat-emails').textContent = totalEmails;
+        document.getElementById('progress-bar').style.width = ((done / total) * 100) + '%';
+
+        if (msg.status === 'done' && msg.emails.length > 0) {
+          addLog('ok', `  ✓ Found ${msg.emails.length} email(s): ${msg.emails.slice(0,3).join(', ')}${msg.emails.length > 3 ? ' …' : ''}`);
+        } else if (msg.status === 'error') {
+          addLog('err', `  ✗ Error: ${msg.error}`);
+        } else {
+          addLog('', `  ○ No emails found`);
+        }
+
+        jobResults.push(msg);
+        addResultRow(msg, done);
+      }
+
+      if (msg.type === 'done') {
+        evtSource.close();
+        document.querySelector('#progress-section h3').textContent = '✅ Scraping complete!';
+        document.querySelector('#progress-section h3').classList.remove('pulsing');
+        document.getElementById('results-section').style.display = 'block';
+        renderSummary();
+        document.getElementById('current-url-text').textContent = 'Done!';
+        showToast(`✅ Done! Found ${totalEmails} emails across ${done} sites.`);
+      }
+    };
+
+    evtSource.onerror = () => {
+      evtSource.close();
+      addLog('err', 'Connection lost. Reload and try again.');
+    };
+  }
+
+  function addLog(type, text) {
+    const wrap = document.getElementById('log-wrap');
+    const div = document.createElement('div');
+    div.className = 'log-entry ' + type;
+    div.textContent = text;
+    wrap.appendChild(div);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function addResultRow(result, idx) {
+    const tbody = document.getElementById('results-tbody');
+    const tr = document.createElement('tr');
+
+    const statusBadge = result.status === 'error'
+      ? `<span class="status-badge error">✗ error</span>`
+      : result.emails.length === 0
+        ? `<span class="status-badge none">○ none</span>`
+        : `<span class="status-badge done">✓ found</span>`;
+
+    const emailsHtml = result.emails.length
+      ? `<div class="email-list">${result.emails.map(e => `<span class="email-chip" title="Click to copy" onclick="copyText('${e}')">${e}</span>`).join('')}</div>`
+      : `<span class="empty-emails">${result.status === 'error' ? result.error : 'No emails found'}</span>`;
+
+    tr.innerHTML = `
+      <td style="color:var(--muted); font-family:var(--mono); font-size:0.8rem">${idx}</td>
+      <td><div class="site-url">${result.url}</div></td>
+      <td>${emailsHtml}</td>
+      <td>${statusBadge}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function renderSummary() {
+    const total = jobResults.length;
+    const withEmails = jobResults.filter(r => r.emails.length > 0).length;
+    const errors = jobResults.filter(r => r.status === 'error').length;
+    const allEmails = [...new Set(jobResults.flatMap(r => r.emails))];
+
+    document.getElementById('summary-bar').innerHTML = `
+      <div class="sum-item">📊 <span class="sum-num">${total}</span> sites crawled</div>
+      <div class="sum-item">📬 <span class="sum-num">${allEmails.length}</span> unique emails</div>
+      <div class="sum-item">✅ <span class="sum-num">${withEmails}</span> sites with emails</div>
+      <div class="sum-item">❌ <span class="sum-num">${errors}</span> errors</div>
+    `;
+  }
+
+  function exportCSV() {
+    const rows = [['Website', 'Emails', 'Count', 'Status']];
+    for (const r of jobResults) {
+      rows.push([r.url, r.emails.join('; '), r.emails.length, r.status]);
+    }
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `emails_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    showToast('⬇️ CSV exported!');
+  }
+
+  function copyAll() {
+    const all = [...new Set(jobResults.flatMap(r => r.emails))];
+    if (!all.length) return showToast('⚠️ No emails to copy');
+    navigator.clipboard.writeText(all.join('\n'));
+    showToast(`📋 Copied ${all.length} unique emails!`);
+  }
+
+  function copyText(text) {
+    navigator.clipboard.writeText(text);
+    showToast('📋 Copied: ' + text);
+  }
+
+  function resetAll() {
+    document.getElementById('progress-section').style.display = 'none';
+    document.getElementById('results-section').style.display = 'none';
+    document.getElementById('manual-input').value = '';
+    clearFile();
+    document.getElementById('gdoc-url').value = '';
+    jobResults = [];
+    totalEmails = 0;
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+  }
+</script>
+</body>
+</html>
