@@ -5,616 +5,232 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>MailHarvest — Bulk Email Extractor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg: #0a0a0b;
-      --surface: #111114;
-      --card: #16161a;
-      --border: #2a2a32;
-      --accent: #e8ff47;
-      --accent2: #47ffe8;
-      --text: #f0f0f2;
-      --muted: #6b6b7a;
-      --success: #47ff8a;
-      --error: #ff4747;
-      --warning: #ffaa47;
-      --font: 'Syne', sans-serif;
-      --mono: 'JetBrains Mono', monospace;
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f0f4ff;--surface:#ffffff;--card:#ffffff;--border:#e2e8f0;
+      --blue:#1a56db;--blue-light:#eff6ff;--blue-mid:#bfdbfe;
+      --gold:#f59e0b;--gold-light:#fffbeb;--gold-mid:#fde68a;
+      --purple:#7c3aed;--text:#0f172a;--muted:#64748b;
+      --success:#059669;--success-light:#ecfdf5;
+      --error:#dc2626;--error-light:#fef2f2;
+      --warning:#d97706;--warning-light:#fffbeb;
+      --font:'Plus Jakarta Sans',sans-serif;
+      --mono:'JetBrains Mono',monospace;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:0 4px 16px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
+      --shadow-lg:0 8px 32px rgba(0,0,0,.10),0 4px 12px rgba(0,0,0,.06);
     }
+    body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,#c7d7f7 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0;opacity:.5}
+    .container{max-width:860px;margin:0 auto;padding:0 20px 60px;position:relative;z-index:1}
+    header{padding:32px 0 28px;margin-bottom:28px}
+    .logo{display:flex;align-items:center;gap:14px}
+    .logo-icon{width:46px;height:46px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 14px rgba(26,86,219,.35)}
+    .logo-text h1{font-size:1.65rem;font-weight:800;letter-spacing:-.04em;line-height:1}
+    .logo-text h1 .blue{color:var(--blue)}
+    .logo-text h1 .gold{color:var(--gold)}
+    .tagline{font-family:var(--mono);font-size:.7rem;color:var(--muted);margin-top:4px;letter-spacing:.06em;text-transform:uppercase}
+    .main-card{background:var(--card);border-radius:20px;border:1px solid var(--border);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:24px}
+    .tabs{display:flex;background:#f8fafc;border-bottom:1px solid var(--border);padding:8px 8px 0;gap:4px}
+    .tab{flex:1;padding:10px 16px;background:none;border:none;border-radius:10px 10px 0 0;color:var(--muted);font-family:var(--font);font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+    .tab:hover{color:var(--blue);background:var(--blue-light)}
+    .tab.active{color:var(--blue);background:var(--card);box-shadow:0 -2px 0 var(--blue) inset}
+    .tab-panel{display:none;padding:24px}
+    .tab-panel.active{display:block}
+    label{display:block;font-size:.75rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    textarea,input[type="text"],input[type="url"]{width:100%;background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:var(--mono);font-size:.84rem;padding:13px 16px;outline:none;transition:all .2s;resize:vertical}
+    textarea:focus,input:focus{border-color:var(--blue);background:#fff;box-shadow:0 0 0 4px rgba(26,86,219,.08)}
+    textarea{min-height:130px}
+    .help-text{font-size:.76rem;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:5px}
+    .help-text::before{content:'ℹ';width:16px;height:16px;background:var(--blue-light);color:var(--blue);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-style:normal;flex-shrink:0}
+    .drop-zone{border:2px dashed var(--border);border-radius:14px;padding:44px 24px;text-align:center;cursor:pointer;transition:all .2s;background:#f8fafc}
+    .drop-zone:hover,.drop-zone.dragover{border-color:var(--blue);background:var(--blue-light)}
+    .dz-icon{width:48px;height:48px;background:var(--blue-light);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin:0 auto 12px}
+    .drop-zone h3{font-size:.95rem;font-weight:700;margin-bottom:5px}
+    .drop-zone p{font-size:.8rem;color:var(--muted)}
+    #csv-input{display:none}
+    .file-loaded{display:flex;align-items:center;gap:10px;background:var(--success-light);border:1px solid #a7f3d0;border-radius:10px;padding:12px 16px;margin-top:12px}
+    .file-icon{width:32px;height:32px;background:#d1fae5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+    .file-name{font-size:.85rem;font-weight:600;color:var(--success)}
+    .file-count{font-size:.75rem;color:var(--muted);font-family:var(--mono)}
+    .file-loaded .clear{margin-left:auto;cursor:pointer;color:var(--muted);font-size:1.1rem;line-height:1}
+    .btn-primary{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 24px;background:linear-gradient(135deg,var(--blue),var(--purple));color:#fff;border:none;border-radius:12px;font-family:var(--font);font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:18px;box-shadow:0 4px 14px rgba(26,86,219,.3);letter-spacing:.01em}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,86,219,.4)}
+    .btn-primary:active{transform:none;box-shadow:none}
+    .btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    #progress-section{display:none;margin-bottom:24px}
+    .progress-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;box-shadow:var(--shadow-md)}
+    .progress-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:14px}
+    .progress-title{display:flex;align-items:center;gap:10px;font-size:.95rem;font-weight:700}
+    .progress-spinner{width:20px;height:20px;border:2px solid var(--blue-mid);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .progress-stats{display:flex;gap:10px;flex-wrap:wrap}
+    .stat-pill{background:var(--blue-light);border:1px solid var(--blue-mid);border-radius:99px;padding:5px 14px;display:flex;align-items:center;gap:6px}
+    .stat-pill .num{font-family:var(--mono);font-size:1rem;font-weight:600;color:var(--blue)}
+    .stat-pill .lbl{font-size:.72rem;color:var(--muted)}
+    .progress-bar-wrap{background:#f1f5f9;border-radius:99px;height:8px;overflow:hidden;margin-bottom:14px}
+    .progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:99px;transition:width .4s ease;width:0%}
+    .current-url{font-family:var(--mono);font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:10px}
+    .current-url span{color:var(--blue);font-weight:500}
+    .log-wrap{background:#f8fafc;border:1px solid var(--border);border-radius:10px;height:110px;overflow-y:auto;padding:10px 14px;font-family:var(--mono);font-size:.73rem}
+    .log-entry{padding:1.5px 0;color:var(--muted)}
+    .log-entry.ok{color:var(--success)}
+    .log-entry.err{color:var(--error)}
+    .log-entry.info{color:var(--blue)}
+    .mid-export{display:flex;gap:10px;margin-top:12px}
+    .btn-outline{padding:8px 16px;background:#fff;border:1.5px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .18s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .btn-outline:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+    .btn-outline:disabled{opacity:.4;cursor:not-allowed}
+    #results-section{display:none}
+    .results-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+    .results-header h2{font-size:1.15rem;font-weight:800}
+    .results-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .summary-bar{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+    .sum-pill{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:99px;padding:7px 16px;box-shadow:var(--shadow-sm)}
+    .sum-icon{font-size:14px}
+    .sum-num{font-family:var(--mono);font-weight:700;color:var(--blue);font-size:1rem}
+    .sum-label{font-size:.78rem;color:var(--muted)}
+    .results-table-wrap{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-sm)}
+    .results-table{width:100%;border-collapse:collapse}
+    .results-table th{background:#f8fafc;padding:11px 16px;text-align:left;font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+    .results-table td{padding:13px 16px;border-bottom:1px solid #f1f5f9;vertical-align:top;font-size:.84rem}
+    .results-table tr:last-child td{border-bottom:none}
+    .results-table tr:hover td{background:#fafbff}
+    .site-url{font-family:var(--mono);color:var(--blue);font-size:.78rem;word-break:break-all}
+    .email-list{display:flex;flex-wrap:wrap;gap:5px}
+    .email-chip{background:var(--gold-light);border:1px solid var(--gold-mid);border-radius:6px;padding:3px 9px;font-family:var(--mono);font-size:.73rem;color:#92400e;cursor:pointer;transition:all .15s;user-select:all}
+    .email-chip:hover{background:var(--gold-mid)}
+    .status-badge{display:inline-flex;align-items:center;gap:4px;font-size:.7rem;font-family:var(--mono);padding:3px 10px;border-radius:99px;font-weight:500}
+    .status-badge.done{background:var(--success-light);color:var(--success)}
+    .status-badge.error{background:var(--error-light);color:var(--error)}
+    .status-badge.none{background:var(--warning-light);color:var(--warning)}
+    .empty-emails{color:var(--muted);font-size:.78rem;font-family:var(--mono)}
+    .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;border-radius:12px;padding:12px 20px;font-size:.84rem;font-weight:500;display:flex;align-items:center;gap:8px;transform:translateY(80px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:999;box-shadow:var(--shadow-lg);max-width:320px}
+    .toast.show{transform:translateY(0);opacity:1}
+    footer{text-align:center;padding:40px 0 24px;color:var(--muted);font-size:.75rem;font-family:var(--mono)}
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:99px}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      min-height: 100vh;
-      overflow-x: hidden;
+    @media(max-width:768px){
+      .container{padding:0 12px 48px}
+      header{padding:20px 0;margin-bottom:18px}
+      .logo-icon{width:38px;height:38px;font-size:18px}
+      .logo-text h1{font-size:1.3rem}
+      .tagline{font-size:.62rem}
+      .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      .tab{padding:8px 12px;font-size:.78rem;white-space:nowrap}
+      .tab-panel{padding:16px 14px}
+      textarea{min-height:110px;font-size:.8rem}
+      .btn-primary{padding:13px 20px;font-size:.88rem;margin-top:14px}
+      .drop-zone{padding:30px 16px}
+      .progress-card{padding:16px}
+      .progress-header{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:14px}
+      .progress-stats{gap:6px}
+      .stat-pill{padding:4px 10px}
+      .stat-pill .num{font-size:.9rem}
+      .log-wrap{height:90px;font-size:.68rem}
+      .mid-export{flex-direction:column}
+      .mid-export .btn-outline{justify-content:center}
+      .results-header{flex-direction:column;align-items:flex-start}
+      .results-header h2{font-size:1rem}
+      .results-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;width:100%}
+      .results-actions .btn-outline{justify-content:center;font-size:.74rem;padding:7px 10px}
+      .sum-pill{padding:5px 12px}
+      .sum-num{font-size:.9rem}
+      .results-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+      .results-table th{font-size:.62rem;padding:9px 10px;white-space:nowrap}
+      .results-table td{padding:10px 10px;font-size:.78rem}
+      .results-table th:first-child,.results-table td:first-child{display:none}
+      .site-url{font-size:.7rem;max-width:110px}
+      .email-chip{font-size:.67rem;padding:2px 7px}
+      .toast{bottom:14px;right:12px;left:12px;max-width:100%;font-size:.78rem}
     }
-
-    /* Animated grid background */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
-      background-size: 48px 48px;
-      pointer-events: none;
-      z-index: 0;
+    @media(max-width:380px){
+      .logo-text h1{font-size:1.1rem}
+      .results-actions{grid-template-columns:1fr}
     }
-
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 24px;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* HEADER */
-    header {
-      padding: 40px 0 32px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 48px;
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .logo-icon {
-      width: 44px; height: 44px;
-      background: var(--accent);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px;
-    }
-
-    .logo h1 {
-      font-size: 1.6rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: var(--text);
-    }
-
-    .logo span {
-      color: var(--accent);
-    }
-
-    .tagline {
-      font-family: var(--mono);
-      font-size: 0.72rem;
-      color: var(--muted);
-      margin-top: 2px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    /* TABS */
-    .input-section {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      margin-bottom: 32px;
-    }
-
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .tab {
-      flex: 1;
-      padding: 16px 20px;
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-family: var(--font);
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-    }
-
-    .tab:hover { color: var(--text); }
-
-    .tab.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
-      background: rgba(232,255,71,0.04);
-    }
-
-    .tab-panel { display: none; padding: 28px; }
-    .tab-panel.active { display: block; }
-
-    /* INPUTS */
-    label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    textarea, input[type="text"], input[type="url"] {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      padding: 14px 16px;
-      outline: none;
-      transition: border-color 0.2s;
-      resize: vertical;
-    }
-
-    textarea:focus, input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(232,255,71,0.08);
-    }
-
-    textarea { min-height: 140px; }
-
-    .help-text {
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 8px;
-      font-family: var(--mono);
-    }
-
-    /* FILE DROP */
-    .drop-zone {
-      border: 2px dashed var(--border);
-      border-radius: 12px;
-      padding: 48px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: var(--surface);
-    }
-
-    .drop-zone:hover, .drop-zone.dragover {
-      border-color: var(--accent);
-      background: rgba(232,255,71,0.04);
-    }
-
-    .drop-zone .icon { font-size: 2.5rem; margin-bottom: 12px; }
-
-    .drop-zone h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .drop-zone p {
-      font-size: 0.82rem;
-      color: var(--muted);
-      font-family: var(--mono);
-    }
-
-    #csv-input { display: none; }
-
-    .file-loaded {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(71,255,138,0.08);
-      border: 1px solid rgba(71,255,138,0.25);
-      border-radius: 10px;
-      padding: 14px 18px;
-      margin-top: 14px;
-    }
-
-    .file-loaded span { color: var(--success); font-size: 0.88rem; font-weight: 600; }
-    .file-loaded .clear { margin-left: auto; cursor: pointer; color: var(--muted); font-size: 1.1rem; }
-
-    /* BUTTONS */
-    .btn-primary {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 16px 24px;
-      background: var(--accent);
-      color: #0a0a0b;
-      border: none;
-      border-radius: 12px;
-      font-family: var(--font);
-      font-size: 1rem;
-      font-weight: 800;
-      letter-spacing: 0.01em;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-top: 20px;
-    }
-
-    .btn-primary:hover {
-      background: #d4eb2e;
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(232,255,71,0.25);
-    }
-
-    .btn-primary:active { transform: none; }
-
-    .btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    /* PROGRESS */
-    #progress-section { display: none; margin-bottom: 32px; }
-
-    .progress-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px 28px;
-    }
-
-    .progress-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-
-    .progress-header h3 {
-      font-size: 1rem;
-      font-weight: 700;
-    }
-
-    .progress-stats {
-      display: flex;
-      gap: 24px;
-    }
-
-    .stat {
-      text-align: right;
-    }
-
-    .stat-val {
-      font-family: var(--mono);
-      font-size: 1.4rem;
-      font-weight: 500;
-      color: var(--accent);
-      line-height: 1;
-    }
-
-    .stat-label {
-      font-size: 0.7rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-top: 2px;
-    }
-
-    .progress-bar-wrap {
-      background: var(--surface);
-      border-radius: 99px;
-      height: 8px;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      border-radius: 99px;
-      transition: width 0.4s ease;
-      width: 0%;
-    }
-
-    .current-url {
-      font-family: var(--mono);
-      font-size: 0.78rem;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .current-url span { color: var(--accent2); }
-
-    /* LIVE LOG */
-    .log-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      height: 120px;
-      overflow-y: auto;
-      padding: 12px 14px;
-      margin-top: 14px;
-      font-family: var(--mono);
-      font-size: 0.75rem;
-    }
-
-    .log-entry { padding: 2px 0; color: var(--muted); }
-    .log-entry.ok { color: var(--success); }
-    .log-entry.err { color: var(--error); }
-    .log-entry.info { color: var(--accent2); }
-
-    /* RESULTS */
-    #results-section { display: none; }
-
-    .results-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .results-header h2 { font-size: 1.3rem; font-weight: 800; }
-
-    .results-actions { display: flex; gap: 10px; }
-
-    .btn-outline {
-      padding: 9px 18px;
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-outline:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    /* Results table */
-    .results-table-wrap {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .results-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .results-table th {
-      background: var(--surface);
-      padding: 12px 18px;
-      text-align: left;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .results-table td {
-      padding: 14px 18px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      vertical-align: top;
-      font-size: 0.85rem;
-    }
-
-    .results-table tr:last-child td { border-bottom: none; }
-
-    .results-table tr:hover td {
-      background: rgba(255,255,255,0.02);
-    }
-
-    .site-url {
-      font-family: var(--mono);
-      color: var(--accent2);
-      font-size: 0.8rem;
-      word-break: break-all;
-    }
-
-    .email-list { display: flex; flex-wrap: wrap; gap: 6px; }
-
-    .email-chip {
-      background: rgba(232,255,71,0.08);
-      border: 1px solid rgba(232,255,71,0.2);
-      border-radius: 6px;
-      padding: 3px 10px;
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--accent);
-      cursor: pointer;
-      transition: all 0.15s;
-      user-select: all;
-    }
-
-    .email-chip:hover {
-      background: rgba(232,255,71,0.18);
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.72rem;
-      font-family: var(--mono);
-      padding: 3px 10px;
-      border-radius: 99px;
-      font-weight: 500;
-    }
-
-    .status-badge.done { background: rgba(71,255,138,0.1); color: var(--success); }
-    .status-badge.error { background: rgba(255,71,71,0.1); color: var(--error); }
-    .status-badge.none { background: rgba(255,170,71,0.1); color: var(--warning); }
-
-    .empty-emails { color: var(--muted); font-size: 0.78rem; font-family: var(--mono); }
-
-    /* Summary bar */
-    .summary-bar {
-      display: flex;
-      gap: 20px;
-      padding: 16px 20px;
-      background: rgba(232,255,71,0.04);
-      border: 1px solid rgba(232,255,71,0.15);
-      border-radius: 12px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    .sum-item { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-    .sum-num { font-family: var(--mono); font-weight: 700; color: var(--accent); font-size: 1rem; }
-
-    /* Toast */
-    .toast {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 20px;
-      font-size: 0.85rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transform: translateY(80px);
-      opacity: 0;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      z-index: 999;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    }
-
-    .toast.show { transform: translateY(0); opacity: 1; }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-
-    footer {
-      text-align: center;
-      padding: 48px 0 32px;
-      color: var(--muted);
-      font-size: 0.78rem;
-      font-family: var(--mono);
-      border-top: 1px solid var(--border);
-      margin-top: 64px;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .pulsing { animation: pulse 1.5s ease-in-out infinite; }
   </style>
 </head>
 <body>
-
 <div class="container">
   <header>
     <div class="logo">
       <div class="logo-icon">⚡</div>
-      <div>
-        <h1>Mail<span>Harvest</span></h1>
+      <div class="logo-text">
+        <h1><span class="blue">Mail</span><span class="gold">Harvest</span></h1>
         <div class="tagline">Bulk Email Extractor · Full Site Crawl</div>
       </div>
     </div>
   </header>
 
-  <!-- INPUT SECTION -->
-  <div class="input-section">
+  <div class="main-card">
     <div class="tabs">
       <button class="tab active" onclick="switchTab('manual')">✏️ Manual Input</button>
       <button class="tab" onclick="switchTab('csv')">📄 Upload CSV</button>
       <button class="tab" onclick="switchTab('gdoc')">📋 Google Doc</button>
     </div>
 
-    <!-- Manual -->
     <div class="tab-panel active" id="tab-manual">
       <label>Enter websites (one per line)</label>
       <textarea id="manual-input" placeholder="https://example.com&#10;https://company.io&#10;domain.net"></textarea>
-      <div class="help-text">Paste domains or full URLs. HTTP/HTTPS auto-added if missing.</div>
+      <div class="help-text">Paste domains or full URLs. HTTP/HTTPS is auto-added if missing.</div>
       <button class="btn-primary" onclick="startScrape('manual')">⚡ Start Scraping</button>
     </div>
 
-    <!-- CSV -->
     <div class="tab-panel" id="tab-csv">
       <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()"
-           ondragover="handleDrag(event, true)" ondragleave="handleDrag(event, false)" ondrop="handleDrop(event)">
-        <div class="icon">📂</div>
+           ondragover="handleDrag(event,true)" ondragleave="handleDrag(event,false)" ondrop="handleDrop(event)">
+        <div class="dz-icon">📂</div>
         <h3>Drop your CSV file here</h3>
-        <p>or click to browse · .csv, .txt supported</p>
+        <p>or click to browse · .csv and .txt supported</p>
       </div>
-      <input type="file" id="csv-input" accept=".csv,.txt" onchange="handleFileSelect(event)" />
+      <input type="file" id="csv-input" accept=".csv,.txt" onchange="handleFileSelect(event)"/>
       <div id="file-loaded" style="display:none" class="file-loaded">
-        <span id="file-name">file.csv</span>
-        <span id="file-count" style="color:var(--muted); font-size:0.8rem; font-family:var(--mono)"></span>
+        <div class="file-icon">📄</div>
+        <div>
+          <div class="file-name" id="file-name">file.csv</div>
+          <div class="file-count" id="file-count"></div>
+        </div>
         <span class="clear" onclick="clearFile()">✕</span>
       </div>
       <button class="btn-primary" onclick="startScrape('csv')">⚡ Start Scraping</button>
     </div>
 
-    <!-- Google Doc -->
     <div class="tab-panel" id="tab-gdoc">
       <label>Google Doc / Sheet URL</label>
-      <input type="url" id="gdoc-url" placeholder="https://docs.google.com/document/d/..." />
-      <div class="help-text">⚠️ The document must be set to <strong style="color:var(--accent)">Anyone with the link can view</strong>. Supports Docs and Sheets.</div>
+      <input type="url" id="gdoc-url" placeholder="https://docs.google.com/document/d/..."/>
+      <div class="help-text">Document must be set to <strong>Anyone with the link can view</strong>. Supports Docs and Sheets.</div>
       <button class="btn-primary" onclick="startScrape('gdoc')">⚡ Start Scraping</button>
     </div>
   </div>
 
-  <!-- PROGRESS -->
   <div id="progress-section">
     <div class="progress-card">
       <div class="progress-header">
-        <h3 class="pulsing">🔍 Crawling websites…</h3>
+        <div class="progress-title">
+          <div class="progress-spinner" id="progress-spinner"></div>
+          <span id="progress-heading">Crawling websites…</span>
+        </div>
         <div class="progress-stats">
-          <div class="stat">
-            <div class="stat-val" id="stat-emails">0</div>
-            <div class="stat-label">Emails Found</div>
-          </div>
-          <div class="stat">
-            <div class="stat-val" id="stat-done">0</div>
-            <div class="stat-label">Sites Done</div>
-          </div>
-          <div class="stat">
-            <div class="stat-val" id="stat-total">0</div>
-            <div class="stat-label">Total Sites</div>
-          </div>
+          <div class="stat-pill"><span class="num" id="stat-emails">0</span><span class="lbl">Emails</span></div>
+          <div class="stat-pill"><span class="num" id="stat-done">0</span><span class="lbl">Done</span></div>
+          <div class="stat-pill"><span class="num" id="stat-total">0</span><span class="lbl">Total</span></div>
         </div>
       </div>
-      <div class="progress-bar-wrap">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
-      <div class="current-url">Currently scraping: <span id="current-url-text">—</span></div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="current-url">Scraping: <span id="current-url-text">—</span></div>
       <div class="log-wrap" id="log-wrap"></div>
+      <div class="mid-export">
+        <button class="btn-outline" id="mid-excel-btn" onclick="exportExcel()" disabled>📊 Export Excel So Far</button>
+        <button class="btn-outline" id="mid-csv-btn" onclick="exportCSV()" disabled>⬇️ Export CSV So Far</button>
+      </div>
     </div>
   </div>
 
-  <!-- RESULTS -->
   <div id="results-section">
     <div class="results-header">
       <h2>📬 Results</h2>
@@ -625,333 +241,238 @@
         <button class="btn-outline" onclick="resetAll()">🔄 New Scrape</button>
       </div>
     </div>
-
     <div class="summary-bar" id="summary-bar"></div>
-
     <div class="results-table-wrap">
       <table class="results-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Website</th>
-            <th>Emails Found</th>
-            <th>Status</th>
-          </tr>
-        </thead>
+        <thead><tr><th>#</th><th>Website</th><th>Emails Found</th><th>Status</th></tr></thead>
         <tbody id="results-tbody"></tbody>
       </table>
     </div>
   </div>
 
-  <footer>MailHarvest · Full-site email extractor · Built for bulk prospecting</footer>
+  <footer>MailHarvest · Bulk email extractor · Built for prospecting</footer>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-  let currentTab = 'manual';
-  let csvUrls = [];
-  let jobResults = [];
-  let totalEmails = 0;
+  let currentTab='manual',csvUrls=[],jobResults=[],totalEmails=0;
 
-  function switchTab(name) {
-    currentTab = name;
-    document.querySelectorAll('.tab').forEach((t, i) => {
-      t.classList.toggle('active', ['manual','csv','gdoc'][i] === name);
-    });
-    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
+  function switchTab(name){
+    currentTab=name;
+    document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['manual','csv','gdoc'][i]===name));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('tab-'+name).classList.add('active');
   }
 
-  // File handling
-  function handleDrag(e, over) {
-    e.preventDefault();
-    document.getElementById('drop-zone').classList.toggle('dragover', over);
+  function handleDrag(e,over){e.preventDefault();document.getElementById('drop-zone').classList.toggle('dragover',over)}
+  function handleDrop(e){e.preventDefault();handleDrag(e,false);const f=e.dataTransfer.files[0];if(f)processFile(f)}
+  function handleFileSelect(e){const f=e.target.files[0];if(f)processFile(f)}
+
+  async function processFile(file){
+    const fd=new FormData();fd.append('file',file);
+    try{
+      const res=await fetch('/api/upload-csv',{method:'POST',body:fd});
+      const data=await res.json();
+      if(data.error)throw new Error(data.error);
+      csvUrls=data.urls;
+      document.getElementById('file-loaded').style.display='flex';
+      document.getElementById('file-name').textContent=file.name;
+      document.getElementById('file-count').textContent=`${csvUrls.length} URLs loaded`;
+      document.getElementById('drop-zone').style.display='none';
+    }catch(err){showToast('❌ '+err.message)}
   }
 
-  function handleDrop(e) {
-    e.preventDefault();
-    handleDrag(e, false);
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
+  function clearFile(){
+    csvUrls=[];
+    document.getElementById('file-loaded').style.display='none';
+    document.getElementById('drop-zone').style.display='block';
+    document.getElementById('csv-input').value='';
   }
 
-  function handleFileSelect(e) {
-    const file = e.target.files[0];
-    if (file) processFile(file);
-  }
-
-  async function processFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await fetch('/api/upload-csv', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      csvUrls = data.urls;
-      document.getElementById('file-loaded').style.display = 'flex';
-      document.getElementById('file-name').textContent = file.name;
-      document.getElementById('file-count').textContent = `${csvUrls.length} URLs loaded`;
-      document.getElementById('drop-zone').style.display = 'none';
-    } catch (err) {
-      showToast('❌ ' + err.message);
-    }
-  }
-
-  function clearFile() {
-    csvUrls = [];
-    document.getElementById('file-loaded').style.display = 'none';
-    document.getElementById('drop-zone').style.display = 'block';
-    document.getElementById('csv-input').value = '';
-  }
-
-  // MAIN SCRAPE
-  async function startScrape(source) {
-    let urls = [];
-
-    if (source === 'manual') {
-      const raw = document.getElementById('manual-input').value.trim();
-      if (!raw) return showToast('⚠️ Please enter at least one URL');
-      urls = raw.split(/[\n,]+/).map(u => u.trim()).filter(Boolean);
-    } else if (source === 'csv') {
-      if (!csvUrls.length) return showToast('⚠️ Please upload a CSV file first');
-      urls = csvUrls;
-    } else if (source === 'gdoc') {
-      const docUrl = document.getElementById('gdoc-url').value.trim();
-      if (!docUrl) return showToast('⚠️ Please enter a Google Doc URL');
+  async function startScrape(source){
+    let urls=[];
+    if(source==='manual'){
+      const raw=document.getElementById('manual-input').value.trim();
+      if(!raw)return showToast('⚠️ Please enter at least one URL');
+      urls=raw.split(/[\n,]+/).map(u=>u.trim()).filter(Boolean);
+    }else if(source==='csv'){
+      if(!csvUrls.length)return showToast('⚠️ Please upload a CSV file first');
+      urls=csvUrls;
+    }else if(source==='gdoc'){
+      const docUrl=document.getElementById('gdoc-url').value.trim();
+      if(!docUrl)return showToast('⚠️ Please enter a Google Doc URL');
       showToast('⏳ Fetching Google Doc…');
-      try {
-        const res = await fetch('/api/google-doc', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ docUrl })
-        });
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        urls = data.urls;
+      try{
+        const res=await fetch('/api/google-doc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({docUrl})});
+        const data=await res.json();
+        if(data.error)throw new Error(data.error);
+        urls=data.urls;
         showToast(`✅ ${urls.length} URLs loaded from Google Doc`);
-      } catch (err) {
-        return showToast('❌ ' + err.message);
-      }
+      }catch(err){return showToast('❌ '+err.message)}
     }
+    if(!urls.length)return showToast('⚠️ No valid URLs found');
 
-    if (!urls.length) return showToast('⚠️ No valid URLs found');
-
-    // Deduplicate by domain
-    const seenDomains = new Set();
-    const dedupedUrls = [];
-    for (const url of urls) {
-      try {
-        let u = url.trim();
-        if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
-        const domain = new URL(u).hostname.replace(/^www\./, '').toLowerCase();
-        if (domain && !seenDomains.has(domain)) {
-          seenDomains.add(domain);
-          dedupedUrls.push(url);
-        }
-      } catch { dedupedUrls.push(url); }
+    const seen=new Set(),deduped=[];
+    for(const url of urls){
+      try{
+        let u=url.trim();
+        if(!/^https?:\/\//i.test(u))u='https://'+u;
+        const d=new URL(u).hostname.replace(/^www\./,'').toLowerCase();
+        if(d&&!seen.has(d)){seen.add(d);deduped.push(url)}
+      }catch{deduped.push(url)}
     }
-    const removed = urls.length - dedupedUrls.length;
-    if (removed > 0) showToast(`ℹ️ Removed ${removed} duplicate domain(s)`);
-    urls = dedupedUrls;
+    const removed=urls.length-deduped.length;
+    if(removed>0)showToast(`ℹ️ Removed ${removed} duplicate domain(s)`);
+    urls=deduped;
 
-    const jobId = 'job_' + Date.now();
-    jobResults = [];
-    totalEmails = 0;
+    const jobId='job_'+Date.now();
+    jobResults=[];totalEmails=0;
 
-    // Show progress
-    document.getElementById('progress-section').style.display = 'block';
-    document.getElementById('results-section').style.display = 'none';
-    document.getElementById('stat-total').textContent = urls.length;
-    document.getElementById('stat-done').textContent = '0';
-    document.getElementById('stat-emails').textContent = '0';
-    document.getElementById('progress-bar').style.width = '0%';
-    document.getElementById('log-wrap').innerHTML = '';
-    document.getElementById('results-tbody').innerHTML = '';
+    document.getElementById('progress-section').style.display='block';
+    document.getElementById('results-section').style.display='none';
+    document.getElementById('stat-total').textContent=urls.length;
+    document.getElementById('stat-done').textContent='0';
+    document.getElementById('stat-emails').textContent='0';
+    document.getElementById('progress-bar').style.width='0%';
+    document.getElementById('log-wrap').innerHTML='';
+    document.getElementById('results-tbody').innerHTML='';
+    document.getElementById('progress-heading').textContent='Crawling websites…';
+    document.getElementById('progress-spinner').style.display='block';
+    document.getElementById('mid-excel-btn').disabled=true;
+    document.getElementById('mid-csv-btn').disabled=true;
+    document.getElementById('mid-excel-btn').style.display='flex';
+    document.getElementById('mid-csv-btn').style.display='flex';
 
-    // Start job
-    await fetch('/api/scrape', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ urls, jobId })
-    });
+    await fetch('/api/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({urls,jobId})});
 
-    // Connect SSE
-    const evtSource = new EventSource(`/api/stream/${jobId}`);
-    let done = 0;
-    const total = urls.length;
+    const evtSource=new EventSource(`/api/stream/${jobId}`);
+    let done=0;const total=urls.length;
 
-    evtSource.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-
-      if (msg.type === 'progress') {
-        document.getElementById('current-url-text').textContent = msg.url;
-        addLog(`info`, `[${msg.index+1}/${msg.total}] Crawling ${msg.url}`);
+    evtSource.onmessage=(e)=>{
+      const msg=JSON.parse(e.data);
+      if(msg.type==='progress'){
+        document.getElementById('current-url-text').textContent=msg.url;
+        addLog('info',`[${msg.index+1}/${msg.total}] Crawling ${msg.url}`);
       }
-
-      if (msg.type === 'page') {
-        addLog('', `  └─ page ${msg.page}: ${msg.url}`);
+      if(msg.type==='page')addLog('',`  └─ page ${msg.page}: ${msg.url}`);
+      if(msg.type==='result'){
+        done++;totalEmails+=msg.emails.length;
+        document.getElementById('stat-done').textContent=done;
+        document.getElementById('stat-emails').textContent=totalEmails;
+        document.getElementById('progress-bar').style.width=(Math.min(done/total,.99)*100)+'%';
+        if(done===1){document.getElementById('mid-excel-btn').disabled=false;document.getElementById('mid-csv-btn').disabled=false}
+        if(msg.status==='done'&&msg.emails.length>0)addLog('ok',`  ✓ Found ${msg.emails.length} email(s): ${msg.emails.slice(0,3).join(', ')}${msg.emails.length>3?' …':''}`);
+        else if(msg.status==='error')addLog('err',`  ✗ Error: ${msg.error}`);
+        else addLog('','  ○ No emails found');
+        jobResults.push(msg);addResultRow(msg,done);
       }
-
-      if (msg.type === 'result') {
-        done++;
-        totalEmails += msg.emails.length;
-        document.getElementById('stat-done').textContent = done;
-        document.getElementById('stat-emails').textContent = totalEmails;
-        document.getElementById('progress-bar').style.width = ((done / total) * 100) + '%';
-
-        if (msg.status === 'done' && msg.emails.length > 0) {
-          addLog('ok', `  ✓ Found ${msg.emails.length} email(s): ${msg.emails.slice(0,3).join(', ')}${msg.emails.length > 3 ? ' …' : ''}`);
-        } else if (msg.status === 'error') {
-          addLog('err', `  ✗ Error: ${msg.error}`);
-        } else {
-          addLog('', `  ○ No emails found`);
-        }
-
-        jobResults.push(msg);
-        addResultRow(msg, done);
-      }
-
-      if (msg.type === 'done') {
+      if(msg.type==='done'){
         evtSource.close();
-        document.querySelector('#progress-section h3').textContent = '✅ Scraping complete!';
-        document.querySelector('#progress-section h3').classList.remove('pulsing');
-        document.getElementById('results-section').style.display = 'block';
+        document.getElementById('progress-spinner').style.display='none';
+        document.getElementById('progress-heading').textContent='✅ Scraping complete!';
+        document.getElementById('progress-bar').style.width='100%';
+        document.getElementById('stat-done').textContent=done;
+        document.getElementById('current-url-text').textContent='All done!';
+        document.getElementById('mid-excel-btn').style.display='none';
+        document.getElementById('mid-csv-btn').style.display='none';
+        document.getElementById('results-section').style.display='block';
         renderSummary();
-        document.getElementById('current-url-text').textContent = 'Done!';
         showToast(`✅ Done! Found ${totalEmails} emails across ${done} sites.`);
       }
     };
-
-    evtSource.onerror = () => {
-      evtSource.close();
-      addLog('err', 'Connection lost. Reload and try again.');
-    };
+    evtSource.onerror=()=>{evtSource.close();addLog('err','Connection lost. Reload and try again.')};
   }
 
-  function addLog(type, text) {
-    const wrap = document.getElementById('log-wrap');
-    const div = document.createElement('div');
-    div.className = 'log-entry ' + type;
-    div.textContent = text;
-    wrap.appendChild(div);
-    wrap.scrollTop = wrap.scrollHeight;
+  function addLog(type,text){
+    const wrap=document.getElementById('log-wrap');
+    const div=document.createElement('div');
+    div.className='log-entry '+type;div.textContent=text;
+    wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
   }
 
-  function addResultRow(result, idx) {
-    const tbody = document.getElementById('results-tbody');
-    const tr = document.createElement('tr');
-
-    const statusBadge = result.status === 'error'
-      ? `<span class="status-badge error">✗ error</span>`
-      : result.emails.length === 0
-        ? `<span class="status-badge none">○ none</span>`
-        : `<span class="status-badge done">✓ found</span>`;
-
-    const emailsHtml = result.emails.length
-      ? `<div class="email-list">${result.emails.map(e => `<span class="email-chip" title="Click to copy" onclick="copyText('${e}')">${e}</span>`).join('')}</div>`
-      : `<span class="empty-emails">${result.status === 'error' ? result.error : 'No emails found'}</span>`;
-
-    tr.innerHTML = `
-      <td style="color:var(--muted); font-family:var(--mono); font-size:0.8rem">${idx}</td>
-      <td><div class="site-url">${result.url}</div></td>
-      <td>${emailsHtml}</td>
-      <td>${statusBadge}</td>
-    `;
+  function addResultRow(result,idx){
+    const tbody=document.getElementById('results-tbody');
+    const tr=document.createElement('tr');
+    const badge=result.status==='error'?'<span class="status-badge error">✗ error</span>':result.emails.length===0?'<span class="status-badge none">○ none</span>':'<span class="status-badge done">✓ found</span>';
+    const emails=result.emails.length?`<div class="email-list">${result.emails.map(e=>`<span class="email-chip" title="Click to copy" onclick="copyText('${e}')">${e}</span>`).join('')}</div>`:`<span class="empty-emails">${result.status==='error'?result.error:'No emails found'}</span>`;
+    tr.innerHTML=`<td style="color:var(--muted);font-family:var(--mono);font-size:.78rem">${idx}</td><td><div class="site-url">${result.url}</div></td><td>${emails}</td><td>${badge}</td>`;
     tbody.appendChild(tr);
   }
 
-  function renderSummary() {
-    const total = jobResults.length;
-    const withEmails = jobResults.filter(r => r.emails.length > 0).length;
-    const errors = jobResults.filter(r => r.status === 'error').length;
-    const allEmails = [...new Set(jobResults.flatMap(r => r.emails))];
-
-    document.getElementById('summary-bar').innerHTML = `
-      <div class="sum-item">📊 <span class="sum-num">${total}</span> sites crawled</div>
-      <div class="sum-item">📬 <span class="sum-num">${allEmails.length}</span> unique emails</div>
-      <div class="sum-item">✅ <span class="sum-num">${withEmails}</span> sites with emails</div>
-      <div class="sum-item">❌ <span class="sum-num">${errors}</span> errors</div>
-    `;
+  function renderSummary(){
+    const total=jobResults.length;
+    const withEmails=jobResults.filter(r=>r.emails.length>0).length;
+    const errors=jobResults.filter(r=>r.status==='error').length;
+    const allEmails=[...new Set(jobResults.flatMap(r=>r.emails))];
+    document.getElementById('summary-bar').innerHTML=`
+      <div class="sum-pill"><span class="sum-icon">📊</span><span class="sum-num">${total}</span><span class="sum-label">sites crawled</span></div>
+      <div class="sum-pill"><span class="sum-icon">📬</span><span class="sum-num">${allEmails.length}</span><span class="sum-label">unique emails</span></div>
+      <div class="sum-pill"><span class="sum-icon">✅</span><span class="sum-num">${withEmails}</span><span class="sum-label">with emails</span></div>
+      <div class="sum-pill"><span class="sum-icon">❌</span><span class="sum-num">${errors}</span><span class="sum-label">errors</span></div>`;
   }
 
-  function exportCSV() {
-    const rows = [['Website', 'Emails', 'Count', 'Status']];
-    for (const r of jobResults) {
-      rows.push([r.url, r.emails.join('; '), r.emails.length, r.status]);
+  function exportCSV(){
+    if(!jobResults.length)return showToast('⚠️ No results to export');
+    const maxE=Math.max(1,...jobResults.map(r=>r.emails.length));
+    const headers=['Website'];
+    for(let i=1;i<=maxE;i++)headers.push('Email '+i);
+    headers.push('Count','Status');
+    const rows=[headers];
+    for(const r of jobResults){
+      const row=[r.url];
+      for(let i=0;i<maxE;i++)row.push(r.emails[i]||'');
+      row.push(r.emails.length,r.status);rows.push(row);
     }
-    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `emails_${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+    const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+    a.download=`mailharvest_${new Date().toISOString().slice(0,10)}.csv`;a.click();
     showToast('⬇️ CSV exported!');
   }
 
-  function exportExcel() {
-    if (!jobResults.length) return showToast('⚠️ No results to export');
-    const date = new Date().toISOString().slice(0,10);
-
-    // Sheet 1: Full results
-    const resultsData = [['#', 'Website', 'Emails Found', 'Email Count', 'Status']];
-    jobResults.forEach((r, i) => {
-      resultsData.push([i+1, r.url, r.emails.join('; '), r.emails.length, r.status]);
-    });
-
-    // Sheet 2: All unique emails flat list
-    const allEmails = [...new Set(jobResults.flatMap(r => r.emails))];
-    const emailsData = [['#', 'Email', 'Source Website']];
-    jobResults.forEach(r => {
-      r.emails.forEach(email => {
-        emailsData.push([emailsData.length, email, r.url]);
-      });
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws1 = XLSX.utils.aoa_to_sheet(resultsData);
-    const ws2 = XLSX.utils.aoa_to_sheet(emailsData);
-
-    // Column widths
-    ws1['!cols'] = [{wch:5},{wch:40},{wch:60},{wch:12},{wch:10}];
-    ws2['!cols'] = [{wch:5},{wch:40},{wch:40}];
-
-    XLSX.utils.book_append_sheet(wb, ws1, 'Results');
-    XLSX.utils.book_append_sheet(wb, ws2, 'All Emails');
-
-    XLSX.writeFile(wb, `mailharvest_${date}.xlsx`);
+  function exportExcel(){
+    if(!jobResults.length)return showToast('⚠️ No results to export');
+    const date=new Date().toISOString().slice(0,10);
+    const maxE=Math.max(1,...jobResults.map(r=>r.emails.length));
+    const rh=['#','Website'];for(let i=1;i<=maxE;i++)rh.push('Email '+i);rh.push('Count','Status');
+    const rd=[rh];
+    jobResults.forEach((r,i)=>{const row=[i+1,r.url];for(let j=0;j<maxE;j++)row.push(r.emails[j]||'');row.push(r.emails.length,r.status);rd.push(row)});
+    const ed=[['#','Email','Source Website']];
+    jobResults.forEach(r=>r.emails.forEach(e=>ed.push([ed.length,e,r.url])));
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.aoa_to_sheet(rd);
+    const ws2=XLSX.utils.aoa_to_sheet(ed);
+    const ec=Array.from({length:maxE},()=>({wch:32}));
+    ws1['!cols']=[{wch:4},{wch:38},...ec,{wch:8},{wch:8}];
+    ws2['!cols']=[{wch:4},{wch:36},{wch:38}];
+    XLSX.utils.book_append_sheet(wb,ws1,'Results');
+    XLSX.utils.book_append_sheet(wb,ws2,'All Emails');
+    XLSX.writeFile(wb,`mailharvest_${date}.xlsx`);
     showToast('📊 Excel file downloaded!');
   }
 
-  function copyAll() {
-    const all = [...new Set(jobResults.flatMap(r => r.emails))];
-    if (!all.length) return showToast('⚠️ No emails to copy');
+  function copyAll(){
+    const all=[...new Set(jobResults.flatMap(r=>r.emails))];
+    if(!all.length)return showToast('⚠️ No emails to copy');
     navigator.clipboard.writeText(all.join('\n'));
     showToast(`📋 Copied ${all.length} unique emails!`);
   }
 
-  function copyText(text) {
-    navigator.clipboard.writeText(text);
-    showToast('📋 Copied: ' + text);
-  }
+  function copyText(text){navigator.clipboard.writeText(text);showToast('📋 Copied: '+text)}
 
-  function resetAll() {
-    document.getElementById('progress-section').style.display = 'none';
-    document.getElementById('results-section').style.display = 'none';
-    document.getElementById('manual-input').value = '';
-    clearFile();
-    document.getElementById('gdoc-url').value = '';
-    jobResults = [];
-    totalEmails = 0;
+  function resetAll(){
+    document.getElementById('progress-section').style.display='none';
+    document.getElementById('results-section').style.display='none';
+    document.getElementById('manual-input').value='';
+    clearFile();document.getElementById('gdoc-url').value='';
+    jobResults=[];totalEmails=0;
   }
 
   let toastTimer;
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+  function showToast(msg){
+    const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+    clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
   }
 </script>
 </body>
