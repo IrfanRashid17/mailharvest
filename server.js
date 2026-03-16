@@ -13,10 +13,20 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
+// Force HTTPS redirect (on Render/production)
+app.use((req, res, next) => {
+  const proto = req.headers['x-forwarded-proto'];
+  if (proto && proto !== 'https') {
+    return res.redirect(301, 'https://' + req.headers.host + req.url);
+  }
+  next();
+});
+
 // Allow iframe embedding from WordPress — remove X-Frame-Options restriction
 app.use((req, res, next) => {
   res.removeHeader('X-Frame-Options');
   res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
 
