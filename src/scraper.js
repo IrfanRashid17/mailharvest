@@ -70,7 +70,7 @@ async function scrapeEmails(startUrl, onPage) {
   const visited = new Set();
   const queue = [base];
   const allEmails = new Set();
-  const MAX_PAGES = 60;
+  const MAX_PAGES = 10;
   let pageCount = 0;
 
   // First pass: collect all links from homepage to sort by priority
