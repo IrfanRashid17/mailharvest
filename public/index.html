@@ -6,6 +6,7 @@
   <title>MailHarvest — Bulk Email Extractor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -618,6 +619,7 @@
     <div class="results-header">
       <h2>📬 Results</h2>
       <div class="results-actions">
+        <button class="btn-outline" onclick="exportExcel()">📊 Export Excel</button>
         <button class="btn-outline" onclick="exportCSV()">⬇️ Export CSV</button>
         <button class="btn-outline" onclick="copyAll()">📋 Copy All Emails</button>
         <button class="btn-outline" onclick="resetAll()">🔄 New Scrape</button>
@@ -734,6 +736,24 @@
     }
 
     if (!urls.length) return showToast('⚠️ No valid URLs found');
+
+    // Deduplicate by domain
+    const seenDomains = new Set();
+    const dedupedUrls = [];
+    for (const url of urls) {
+      try {
+        let u = url.trim();
+        if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+        const domain = new URL(u).hostname.replace(/^www\./, '').toLowerCase();
+        if (domain && !seenDomains.has(domain)) {
+          seenDomains.add(domain);
+          dedupedUrls.push(url);
+        }
+      } catch { dedupedUrls.push(url); }
+    }
+    const removed = urls.length - dedupedUrls.length;
+    if (removed > 0) showToast(`ℹ️ Removed ${removed} duplicate domain(s)`);
+    urls = dedupedUrls;
 
     const jobId = 'job_' + Date.now();
     jobResults = [];
@@ -867,6 +887,40 @@
     a.download = `emails_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     showToast('⬇️ CSV exported!');
+  }
+
+  function exportExcel() {
+    if (!jobResults.length) return showToast('⚠️ No results to export');
+    const date = new Date().toISOString().slice(0,10);
+
+    // Sheet 1: Full results
+    const resultsData = [['#', 'Website', 'Emails Found', 'Email Count', 'Status']];
+    jobResults.forEach((r, i) => {
+      resultsData.push([i+1, r.url, r.emails.join('; '), r.emails.length, r.status]);
+    });
+
+    // Sheet 2: All unique emails flat list
+    const allEmails = [...new Set(jobResults.flatMap(r => r.emails))];
+    const emailsData = [['#', 'Email', 'Source Website']];
+    jobResults.forEach(r => {
+      r.emails.forEach(email => {
+        emailsData.push([emailsData.length, email, r.url]);
+      });
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.aoa_to_sheet(resultsData);
+    const ws2 = XLSX.utils.aoa_to_sheet(emailsData);
+
+    // Column widths
+    ws1['!cols'] = [{wch:5},{wch:40},{wch:60},{wch:12},{wch:10}];
+    ws2['!cols'] = [{wch:5},{wch:40},{wch:40}];
+
+    XLSX.utils.book_append_sheet(wb, ws1, 'Results');
+    XLSX.utils.book_append_sheet(wb, ws2, 'All Emails');
+
+    XLSX.writeFile(wb, `mailharvest_${date}.xlsx`);
+    showToast('📊 Excel file downloaded!');
   }
 
   function copyAll() {
