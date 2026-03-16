@@ -126,7 +126,7 @@ async function scrapeEmails(startUrl, onPage) {
     }
 
     // Small delay to be respectful
-    await sleep(300);
+    await sleep(150);
   }
 
   return [...allEmails];
